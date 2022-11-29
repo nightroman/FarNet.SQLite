@@ -58,7 +58,7 @@ Import-Module FarNet.SQLite
 
 This is not just about the shorter command:
 
-- For script outside Far Manager, this way does not need the variable `FARHOME` defined.
+- For scripts outside Far Manager, this way does not need the variable `FARHOME` defined.
 - In many cases you do not need to import the module, PowerShell discovers module commands.
 
 ### Install the module
@@ -109,6 +109,14 @@ Get-Command -Module FarNet.SQLite
 Open-SQLite -?
 help Open-SQLite -full
 ```
+
+These five simple commands should be enough for almost everything:
+
+    Open-SQLite
+    Set-SQLite
+    Get-SQLite
+    Close-SQLite
+    Use-SQLiteTransaction
 
 ## See also
 

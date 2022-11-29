@@ -8,7 +8,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Stub.System.Data.SQLite.Core.NetStandard" Version="1.0.116" />
+    <PackageReference Include="Stub.System.Data.SQLite.Core.NetStandard" Version="1.0.117" />
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="ib publish -Configuration $(Configuration) -FarHome $(FarHome)" />

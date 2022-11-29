@@ -98,17 +98,7 @@ task nuget package, version, {
 	($dllVersion = (Get-Item "$ModuleRoot\$ModuleName.dll").VersionInfo.FileVersion.ToString())
 	equals $dllVersion $Version
 
-	$Description = @"
-$Description
-
----
-
-To install FarNet packages, follow these steps:
-
-https://github.com/nightroman/FarNet#readme
-
----
-"@
+	Copy-Item README.md z
 
 	Set-Content z\Package.nuspec @"
 <?xml version="1.0"?>
@@ -123,6 +113,7 @@ https://github.com/nightroman/FarNet#readme
 		<description>$Description</description>
 		<releaseNotes>https://github.com/nightroman/$ModuleName/blob/main/Release-Notes.md</releaseNotes>
 		<tags>FarManager FarNet SQLite Database</tags>
+		<readme>README.md</readme>
 	</metadata>
 </package>
 "@
