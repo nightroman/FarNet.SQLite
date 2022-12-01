@@ -50,33 +50,24 @@ public sealed class DB : IDisposable
         _connection.Open();
     }
 
-    // PowerShell helper, used as @{ id = ... }
-    static void AddCommandParameters(SQLiteCommand command, IDictionary? parameters)
+    static void AddCommandParameters(SQLiteCommand command, object?[] parameters)
     {
-        if (parameters != null)
+        foreach (var obj in parameters)
         {
-            foreach (DictionaryEntry it in parameters)
-                command.Parameters.AddWithValue(it.Key.ToString(), it.Value);
-        }
-    }
+            if (obj is IDictionary dic)
+            {
+                foreach (DictionaryEntry it in dic)
+                    command.Parameters.AddWithValue(it.Key.ToString(), it.Value);
+                continue;
+            }
 
-    // C# helper, used as ("id", ...)
-    static void AddCommandParameters(SQLiteCommand command, (string, object)[]? parameters)
-    {
-        if (parameters != null)
-        {
-            foreach (var it in parameters)
-                command.Parameters.AddWithValue(it.Item1, it.Item2);
-        }
-    }
+            if (obj is SQLiteParameter prm)
+            {
+                command.Parameters.Add(prm);
+                continue;
+            }
 
-    // F# helper, used as ("id", ...)
-    static void AddCommandParameters(SQLiteCommand command, Tuple<string, object>[]? parameters)
-    {
-        if (parameters != null)
-        {
-            foreach (var it in parameters)
-                command.Parameters.AddWithValue(it.Item1, it.Item2);
+            command.Parameters.AddWithValue((command.Parameters.Count + 1).ToString(), obj);
         }
     }
 
@@ -84,31 +75,7 @@ public sealed class DB : IDisposable
     /// Executes the non-query command.
     /// </summary>
     /// <include file='doc.xml' path='doc/Execute/*'/>
-    public void Execute(string command, IDictionary? parameters = null)
-    {
-        using var cmd = _connection.CreateCommand();
-        cmd.CommandText = command;
-        AddCommandParameters(cmd, parameters);
-        cmd.ExecuteNonQuery();
-    }
-
-    /// <summary>
-    /// Executes the non-query command.
-    /// </summary>
-    /// <include file='doc.xml' path='doc/Execute/*'/>
-    public void Execute(string command, params (string, object)[] parameters)
-    {
-        using var cmd = _connection.CreateCommand();
-        cmd.CommandText = command;
-        AddCommandParameters(cmd, parameters);
-        cmd.ExecuteNonQuery();
-    }
-
-    /// <summary>
-    /// Executes the non-query command.
-    /// </summary>
-    /// <include file='doc.xml' path='doc/Execute/*'/>
-    public void Execute(string command, params Tuple<string, object>[] parameters)
+    public void Execute(string command, params object?[] parameters)
     {
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = command;
@@ -121,33 +88,7 @@ public sealed class DB : IDisposable
     /// </summary>
     /// <include file='doc.xml' path='doc/Execute/*'/>
     /// <returns>The number of affected records.</returns>
-    public int ExecuteNonQuery(string command, IDictionary? parameters = null)
-    {
-        using var cmd = _connection.CreateCommand();
-        cmd.CommandText = command;
-        AddCommandParameters(cmd, parameters);
-        return cmd.ExecuteNonQuery();
-    }
-
-    /// <summary>
-    /// Executes the non-query command and returns the number of affected records.
-    /// </summary>
-    /// <include file='doc.xml' path='doc/Execute/*'/>
-    /// <returns>The number of affected records.</returns>
-    public int ExecuteNonQuery(string command, params (string, object)[] parameters)
-    {
-        using var cmd = _connection.CreateCommand();
-        cmd.CommandText = command;
-        AddCommandParameters(cmd, parameters);
-        return cmd.ExecuteNonQuery();
-    }
-
-    /// <summary>
-    /// Executes the non-query command and returns the number of affected records.
-    /// </summary>
-    /// <include file='doc.xml' path='doc/Execute/*'/>
-    /// <returns>The number of affected records.</returns>
-    public int ExecuteNonQuery(string command, params Tuple<string, object>[] parameters)
+    public int ExecuteNonQuery(string command, params object?[] parameters)
     {
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = command;
@@ -160,7 +101,7 @@ public sealed class DB : IDisposable
     /// </summary>
     /// <include file='doc.xml' path='doc/Execute/*'/>
     /// <returns>The result value.</returns>
-    public object ExecuteScalar(string command, IDictionary? parameters = null)
+    public object ExecuteScalar(string command, params object?[] parameters)
     {
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = command;
@@ -169,76 +110,21 @@ public sealed class DB : IDisposable
     }
 
     /// <summary>
-    /// Executes the query and returns the single value result.
+    /// Executes the query and returns the result data table.
     /// </summary>
     /// <include file='doc.xml' path='doc/Execute/*'/>
-    /// <returns>The result value.</returns>
-    public object ExecuteScalar(string command, params (string, object)[] parameters)
+    /// <returns>The result data table.</returns>
+    public DataTable ExecuteTable(string command, params object?[] parameters)
     {
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = command;
         AddCommandParameters(cmd, parameters);
-        return cmd.ExecuteScalar();
-    }
 
-    /// <summary>
-    /// Executes the query and returns the single value result.
-    /// </summary>
-    /// <include file='doc.xml' path='doc/Execute/*'/>
-    /// <returns>The result value.</returns>
-    public object ExecuteScalar(string command, params Tuple<string, object>[] parameters)
-    {
-        using var cmd = _connection.CreateCommand();
-        cmd.CommandText = command;
-        AddCommandParameters(cmd, parameters);
-        return cmd.ExecuteScalar();
-    }
-
-    DataTable ExecuteTable(SQLiteCommand command)
-    {
-        using var adapter = new SQLiteDataAdapter(command);
+        using var adapter = new SQLiteDataAdapter(cmd);
         var table = new DataTable();
         adapter.Fill(table);
+
         return table;
-    }
-
-    /// <summary>
-    /// Executes the query and returns the result data table.
-    /// </summary>
-    /// <include file='doc.xml' path='doc/Execute/*'/>
-    /// <returns>The result data table.</returns>
-    public DataTable ExecuteTable(string command, IDictionary? parameters = null)
-    {
-        using var cmd = _connection.CreateCommand();
-        cmd.CommandText = command;
-        AddCommandParameters(cmd, parameters);
-        return ExecuteTable(cmd);
-    }
-
-    /// <summary>
-    /// Executes the query and returns the result data table.
-    /// </summary>
-    /// <include file='doc.xml' path='doc/Execute/*'/>
-    /// <returns>The result data table.</returns>
-    public DataTable ExecuteTable(string command, params (string, object)[] parameters)
-    {
-        using var cmd = _connection.CreateCommand();
-        cmd.CommandText = command;
-        AddCommandParameters(cmd, parameters);
-        return ExecuteTable(cmd);
-    }
-
-    /// <summary>
-    /// Executes the query and returns the result data table.
-    /// </summary>
-    /// <include file='doc.xml' path='doc/Execute/*'/>
-    /// <returns>The result data table.</returns>
-    public DataTable ExecuteTable(string command, params Tuple<string, object>[] parameters)
-    {
-        using var cmd = _connection.CreateCommand();
-        cmd.CommandText = command;
-        AddCommandParameters(cmd, parameters);
-        return ExecuteTable(cmd);
     }
 
     /// <summary>

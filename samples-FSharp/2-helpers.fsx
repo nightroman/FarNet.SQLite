@@ -25,7 +25,7 @@ do
     test <@ dt.Rows[0]["CategoryId"] = 1L @>
     test <@ dt.Rows[0]["Category"] = "Task" @>
 
-    let res = db.ExecuteNonQuery("DELETE FROM TestCategories WHERE CategoryId = @id", ("id", box 1))
+    let res = db.ExecuteNonQuery("DELETE FROM TestCategories WHERE CategoryId = ?", 1)
     test <@ res = 1 @>
 
     let res = db.ExecuteScalar("SELECT count() FROM TestCategories")

@@ -5,11 +5,11 @@
     /// <include file='doc.xml' path='doc/N1[@name="N2"]/*'/>
     -->
   <DB>
-    <param name="database">Specifies the connection string "Data Source". If it is null or empty then options may define it.</param>
+    <param name="database">Specifies the connection data source. If it is null or empty then options may define it.</param>
     <param name="options">Connection string extra options or the full connection string.</param>
   </DB>
   <Execute>
     <param name="command">SQL command text.</param>
-    <param name="parameters">Optional command parameters.</param>
+    <param name="parameters">Command parameters: `IDictionary` or `SQLiteParameter` for named parameters or objects for positional parameters.</param>
   </Execute>
 </doc>

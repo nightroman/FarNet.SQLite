@@ -36,8 +36,8 @@ do
     // add data
     for row in rows do
         db.Execute(
-            "insert into t1 (Value) values (@Value)",
-            ("Value", JsonSerializer.Serialize(row) :> obj))
+            "insert into t1 (Value) values (?)",
+            JsonSerializer.Serialize(row))
 
     // query (no JSON parsing here, SQLite uses the index for Id)
     let value = db.ExecuteScalar("select Value from t1 order by Id desc limit 1")

@@ -117,7 +117,7 @@ function Close-SQLite {
 		Specifies the non-query SQLite command.
 
 .Parameter Parameters
-		Specifies optional command parameters.
+		Command parameters: `IDictionary` or `SQLiteParameter` for named parameters or objects for positional parameters.
 
 .Parameter Result
 		Tells to return the affected records count.
@@ -135,8 +135,7 @@ function Set-SQLite {
 		[string]$Command
 		,
 		[Parameter(Position=1)]
-		[ValidateNotNull()]
-		[System.Collections.IDictionary]$Parameters = @{}
+		[object[]]$Parameters = @()
 		,
 		[switch]$Result
 		,
@@ -169,7 +168,7 @@ function Set-SQLite {
 		Specifies the non-query SQLite command.
 
 .Parameter Parameters
-		Specifies optional command parameters.
+		Command parameters: `IDictionary` or `SQLiteParameter` for named parameters or objects for positional parameters.
 
 .Parameter Scalar
 		Tells to return the first result value.
@@ -191,7 +190,7 @@ function Get-SQLite {
 		,
 		[Parameter(Position=1)]
 		[ValidateNotNull()]
-		[System.Collections.IDictionary]$Parameters = @{}
+		[object[]]$Parameters = @()
 		,
 		[System.Data.SQLite.DB]$Database
 		,
