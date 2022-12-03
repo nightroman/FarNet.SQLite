@@ -96,7 +96,7 @@ Now you have the PowerShell module installed. You may update the FarNet package
 as usual. The symbolic link or junction do not have to be updated, they point
 to the same location.
 
-### Explore the module
+### Explore commands
 
 ```powershell
 # import the module
@@ -110,13 +110,38 @@ Open-SQLite -?
 help Open-SQLite -full
 ```
 
-These five simple commands should be enough for almost everything:
+### Typical scripts
 
-    Open-SQLite
-    Set-SQLite
-    Get-SQLite
+**Reading data**
+
+```powershell
+Import-Module FarNet.SQLite
+Open-SQLite db.sqlite -ReadOnly
+try {
+    # work with Get-SQLite
+    ...
+}
+finally {
     Close-SQLite
-    Use-SQLiteTransaction
+}
+```
+
+**Writing data**
+
+
+```powershell
+Import-Module FarNet.SQLite
+Open-SQLite db.sqlite -Transaction
+try {
+    # work with Get-SQLite and Set-SQLite
+    ...
+    # commit work
+    Complete-SQLite
+}
+finally {
+    Close-SQLite
+}
+```
 
 ## See also
 

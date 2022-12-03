@@ -12,7 +12,9 @@
 	If `Database` and `Options` are both omitted or empty then ":memory:" is used.
 	Otherwise one of these parameters should specify the database.
 
-	Use `$db.Connection` in order to access the underlying `SQLiteConnection`.
+	Use `$db.Connection` in order to get the underlying `SQLiteConnection`.
+
+	When the work is done, close the database by `Close-SQLite`.
 
 .Parameter Database
 		Specifies the database file or ":memory:". If it is empty and `Options`
@@ -20,6 +22,14 @@
 
 .Parameter Options
 		Connection string extra options or the full connection string.
+
+.Parameter CreateFile
+		Tells to create a new file before opening the connection.
+		This switch is used when Database is specified.
+
+.Parameter Transaction
+		Tells to begin a transaction after opening the connection.
+		Commit the transaction by `Complete-SQLite` before `Close-SQLite`.
 
 .Parameter AllowNestedTransactions
 		Adds `AllowNestedTransactions` to `Flags`.
@@ -46,6 +56,10 @@ function Open-SQLite {
 		[Parameter(Position=1)]
 		[string]$Options
 		,
+		[switch]$CreateFile
+		,
+		[switch]$Transaction
+		,
 		[switch]$AllowNestedTransactions
 		,
 		[switch]$ForeignKeys
@@ -58,6 +72,9 @@ function Open-SQLite {
 	if ($Database) {
 		if ($Database -ne ':memory:') {
 			$Database = $PSCmdlet.GetUnresolvedProviderPathFromPSPath($Database)
+			if ($CreateFile) {
+				[System.Data.SQLite.SQLiteConnection]::CreateFile($Database)
+			}
 		}
 	}
 	elseif (!$Options) {
@@ -75,7 +92,7 @@ function Open-SQLite {
 		$sb.ReadOnly = $true
 	}
 
-	$db = [System.Data.SQLite.DB]::new($Database, $sb.ConnectionString)
+	$db = [System.Data.SQLite.DB]::new($Database, $sb.ConnectionString, $Transaction)
 	$PSCmdlet.SessionState.PSVariable.Set($Variable, $db)
 }
 
@@ -84,7 +101,7 @@ function Open-SQLite {
 	Closes the SQLite database connection.
 
 .Description
-	Databases opened by `Open-SQLite` must be closed by `Close-SQLite`.
+	This command closes the database opened by `Open-SQLite`.
 
 .Parameter Database
 		The database from `Open-SQLite`, the variable $db by default.
@@ -107,14 +124,42 @@ function Close-SQLite {
 
 <#
 .Synopsis
-	Invokes non-query SQLite commands.
+	Completes the transaction created on opening.
+
+.Description
+	It completes the transaction created by `Open-SQLite -Transaction`. This
+	command should be called once before `Close-SQLite`. If it is not called
+	then `Close-SQLite` discards all changes.
+
+.Parameter Database
+		The database from `Open-SQLite`, the variable $db by default.
+#>
+function Complete-SQLite {
+	[CmdletBinding()]
+	param(
+		[Parameter(Position=0)]
+		[System.Data.SQLite.DB]$Database
+	)
+
+	if (!$Database) {
+		if (!($Database = $PSCmdlet.GetVariableValue('db'))) {
+			Write-Error 'Expected variable $db or parameter Database.'
+		}
+	}
+
+	$Database.Commit()
+}
+
+<#
+.Synopsis
+	Invokes the non-query command.
 
 .Description
 	This command invokes non-query commands, e.g. CREATE, INSERT, DELETE, etc.
 	It returns nothing by default. Use Result in order to get the result number.
 
 .Parameter Command
-		Specifies the non-query SQLite command.
+		Specifies the non-query command.
 
 .Parameter Parameters
 		Command parameters: `IDictionary` or `SQLiteParameter` for named parameters or objects for positional parameters.
@@ -158,32 +203,39 @@ function Set-SQLite {
 
 <#
 .Synopsis
-	Invokes SQLite query commands.
+	Invokes the query command.
 
 .Description
 	This command invokes query commands like SELECT. It returns `DataRow`
-	objects by default. Use `Scalar` or `Table` to alter the result type.
+	objects by default. Use `Scalar`, `Column`, `Lookup`, `Table` for
+	different results, depending on the query.
 
 .Parameter Command
-		Specifies the non-query SQLite command.
+		Specifies the query command.
 
 .Parameter Parameters
 		Command parameters: `IDictionary` or `SQLiteParameter` for named parameters or objects for positional parameters.
+
+.Parameter Column
+		Tells to return the first column values array.
+
+.Parameter Lookup
+		Tells to return the first two columns dictionary.
 
 .Parameter Scalar
 		Tells to return the first result value.
 
 .Parameter Table
-		Tells to return DataTable as the result.
+		Tells to return the result as DataTable.
 
 .Parameter Database
 		The database from `Open-SQLite`, the variable $db by default.
 
 .Outputs
-	DataRow, DataTable, object.
+	DataRow, DataTable, Dictionary, object.
 #>
 function Get-SQLite {
-	[CmdletBinding()]
+	[CmdletBinding(DefaultParameterSetName='Rows')]
 	param(
 		[Parameter(Position=0, Mandatory=$true)]
 		[string]$Command
@@ -194,8 +246,16 @@ function Get-SQLite {
 		,
 		[System.Data.SQLite.DB]$Database
 		,
+		[Parameter(ParameterSetName='Column', Mandatory=$true)]
+		[switch]$Column
+		,
+		[Parameter(ParameterSetName='Lookup', Mandatory=$true)]
+		[switch]$Lookup
+		,
+		[Parameter(ParameterSetName='Scalar', Mandatory=$true)]
 		[switch]$Scalar
 		,
+		[Parameter(ParameterSetName='Table', Mandatory=$true)]
 		[switch]$Table
 	)
 
@@ -205,55 +265,17 @@ function Get-SQLite {
 		}
 	}
 
-	if ($Scalar) {
+	if ($Column) {
+		$Database.ExecuteColumn($Command, $Parameters)
+	}
+	elseif ($Lookup) {
+		$Database.ExecuteLookup($Command, $Parameters)
+	}
+	elseif ($Scalar) {
 		$Database.ExecuteScalar($Command, $Parameters)
 	}
 	else {
 		$r = $Database.ExecuteTable($Command, $Parameters)
 		if ($Table) {, $r} else {$r}
-	}
-}
-
-<#
-.Synopsis
-	Invokes script with transaction.
-
-.Description
-	This command begins a new transaction and invokes the specified script.
-	If the script completes without terminating errors the transaction commits.
-
-	Open the database with `AllowNestedTransactions` for nested transactions.
-
-.Parameter Script
-		The script invoked with a new transaction.
-
-.Parameter Database
-		The database from `Open-SQLite`, the variable $db by default.
-
-.Outputs
-	None or objects returned by the script.
-#>
-function Use-SQLiteTransaction {
-	[CmdletBinding()]
-	param(
-		[Parameter(Position=0, Mandatory=$true)]
-		[scriptblock]$Script
-		,
-		[System.Data.SQLite.DB]$Database
-	)
-
-	if (!$Database) {
-		if (!($Database = $PSCmdlet.GetVariableValue('db'))) {
-			Write-Error 'Expected variable $db or parameter Database.'
-		}
-	}
-
-	$transaction = $Database.Connection.BeginTransaction()
-	try {
-		& $Script
-		$transaction.Commit()
-	}
-	finally {
-		$transaction.Dispose()
 	}
 }

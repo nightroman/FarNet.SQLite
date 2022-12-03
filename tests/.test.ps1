@@ -2,7 +2,7 @@
 Set-StrictMode -Version 3
 Import-Module FarNet.SQLite
 
-task Basic {
+task BasicDefaultVariable {
 	Open-SQLite
 
 	$r = Set-SQLite 'create table t1 (Name)'
@@ -25,33 +25,27 @@ task Basic {
 	Close-SQLite
 }
 
-task Transaction {
-	Open-SQLite
-	Set-SQLite 'create table t1 (Name)'
+task BasicCustomVariable {
+	Open-SQLite -Variable database
 
-	$_221126_0332 = '_221126_0332'
-	Use-SQLiteTransaction {
-		Set-SQLite 'insert into t1 (Name) values (@Name)' @{Name = $_221126_0332}
-	}
+	$r = Set-SQLite 'create table t1 (Name)' -Database $database
+	equals $r $null
 
-	$r = Get-SQLite 'select Name from t1'
-	equals $r.Name _221126_0332
+	$r = Set-SQLite 'insert into t1 (Name) values ("_221126_0256")' -Result -Database $database
+	equals $r 1
 
-	$r = $(
-		try {
-			Use-SQLiteTransaction {
-				throw <##> 42
-			}
-		}
-		catch {
-			$_
-		}
-	)
+	$r = Get-SQLite 'select Name from t1' -Scalar -Database $database
+	equals $r _221126_0256
 
-	equals "$r" '42'
-	assert $r.InvocationInfo.Line.Contains('throw <##> 42')
+	$r = Get-SQLite 'select Name from t1' -Table -Database $database
+	assert ($r -is [System.Data.DataTable])
+	equals $r[0].Name _221126_0256
 
-	Close-SQLite
+	$r = Get-SQLite 'select Name from t1' -Database $database
+	assert ($r -is [System.Data.DataRow])
+	equals $r.Name _221126_0256
+
+	Close-SQLite -Database $database
 }
 
 task OpenParameters {
@@ -67,4 +61,37 @@ task OpenParameters {
 task Memory {
 	#! fixed
 	Open-SQLite :memory:
+}
+
+# SQLite is case sensitive by default
+task CaseSensitive {
+	Open-SQLite :memory:
+	Set-SQLite @'
+create table t1 (id string primary key);
+insert into t1 (id) values ("q1");
+insert into t1 (id) values ("Q1");
+'@
+	equals q1 (Get-SQLite -Scalar 'select id from t1 where id="q1"')
+	equals Q1 (Get-SQLite -Scalar 'select id from t1 where id="Q1"')
+	equals 'Q1,q1' ((Get-SQLite -Column 'select distinct id from t1') -join ',')
+	Close-SQLite
+}
+
+# Use `collate nocase` to ignore case.
+task CaseInsensitive {
+	Open-SQLite :memory:
+	Set-SQLite @'
+create table t1 (id string collate nocase primary key);
+insert into t1 (id) values ("q1");
+'@
+	($r = try { Set-SQLite 'insert into t1 (id) values ("Q1");' } catch { $_ })
+	assert "$r".Contains('UNIQUE constraint failed: t1.id"')
+	Close-SQLite
+}
+
+# It's fine to close again
+task DoubleClose {
+	Open-SQLite
+	Close-SQLite
+	Close-SQLite
 }

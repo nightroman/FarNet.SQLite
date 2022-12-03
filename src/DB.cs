@@ -1,5 +1,6 @@
 ﻿
 using System.Collections;
+using System.Collections.Generic;
 
 namespace System.Data.SQLite;
 
@@ -9,6 +10,7 @@ namespace System.Data.SQLite;
 public sealed class DB : IDisposable
 {
     readonly SQLiteConnection _connection;
+    SQLiteTransaction? _transaction;
 
     /// <summary>
     /// Gets the SQLite connection instance.
@@ -25,7 +27,32 @@ public sealed class DB : IDisposable
     /// </summary>
     public void Dispose()
     {
+        if (_transaction != null)
+        {
+            _transaction.Dispose();
+            _transaction = null;
+        }
+
         _connection.Dispose();
+    }
+
+    /// <summary>
+    /// Commits the transaction created with the connection.
+    /// </summary>
+    public void Commit()
+    {
+        if (_transaction is null)
+            throw new InvalidOperationException("There is no active transaction. It is either completed or not created.");
+
+        try
+        {
+            _transaction.Commit();
+        }
+        finally
+        {
+            _transaction.Dispose();
+            _transaction = null;
+        }
     }
 
     /// <summary>
@@ -36,7 +63,7 @@ public sealed class DB : IDisposable
     /// If database and options are both omitted or empty then ":memory:" is used.
     /// Otherwise one of these parameters should specify the database.
     /// </remarks>
-    public DB(string? database = null, string? options = null)
+    public DB(string? database = null, string? options = null, bool beginTransaction = false)
     {
         //! mind powershell may pass nulls as empty strings
         if (string.IsNullOrEmpty(database) && string.IsNullOrEmpty(options))
@@ -48,6 +75,18 @@ public sealed class DB : IDisposable
 
         _connection = new SQLiteConnection(builder.ConnectionString);
         _connection.Open();
+
+        if (beginTransaction)
+        {
+            try
+            {
+                _transaction = _connection.BeginTransaction();
+            }
+            catch
+            {
+                _connection.Dispose();
+            }
+        }
     }
 
     static void AddCommandParameters(SQLiteCommand command, object?[] parameters)
@@ -125,6 +164,44 @@ public sealed class DB : IDisposable
         adapter.Fill(table);
 
         return table;
+    }
+
+    /// <summary>
+    /// Executes the query and returns the first column values.
+    /// </summary>
+    /// <include file='doc.xml' path='doc/Execute/*'/>
+    /// <returns>The result values array.</returns>
+    public object[] ExecuteColumn(string command, params object?[] parameters)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = command;
+        AddCommandParameters(cmd, parameters);
+
+        var list = new List<object>();
+        using var read = cmd.ExecuteReader();
+        while (read.Read())
+            list.Add(read.GetValue(0));
+
+        return list.ToArray();
+    }
+
+    /// <summary>
+    /// Executes the query and returns the first two column dictionary.
+    /// </summary>
+    /// <include file='doc.xml' path='doc/Execute/*'/>
+    /// <returns>The result dictionary.</returns>
+    public Dictionary<object, object> ExecuteLookup(string command, params object?[] parameters)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = command;
+        AddCommandParameters(cmd, parameters);
+
+        var dic = new Dictionary<object, object>();
+        using var read = cmd.ExecuteReader();
+        while (read.Read())
+            dic.Add(read.GetValue(0), read.GetValue(1));
+
+        return dic;
     }
 
     /// <summary>

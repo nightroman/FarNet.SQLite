@@ -17,6 +17,6 @@
 		'Set-SQLite'
 		'Get-SQLite'
 		'Close-SQLite'
-		'Use-SQLiteTransaction'
+		'Complete-SQLite'
 	)
 }
