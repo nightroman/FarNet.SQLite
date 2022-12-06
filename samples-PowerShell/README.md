@@ -5,7 +5,7 @@ Scripts may be invoked in Far Manager by PowerShellFar or without Far Manager by
 ## Using the module
 
 The simplest way of using FarNet.SQLite in PowerShell is via the module.
-If the module is installed (see [README](../README)):
+If the module is installed (see [README](../README.md)):
 
 ```powershell
 Import-Module FarNet.SQLite

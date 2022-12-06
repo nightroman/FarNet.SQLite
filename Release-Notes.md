@@ -1,5 +1,19 @@
 # FarNet.SQLite Release Notes
 
+## v0.3.0
+
+**API**
+
+New helpers for `SQLiteCommand`.
+
+**PS module**
+
+New commands `New-SQLiteCommand`, `New-SQLiteParameter` for "prepared" commands.
+`Get-SQLite` and `Set-SQLite` accept prepared `New-SQLiteCommand` as `Command`.
+Prepared commands are faster for repeated calls.
+
+PowerShell help moved to `FarNet.SQLite-Help.xml`.
+
 ## v0.2.0
 
 **API**

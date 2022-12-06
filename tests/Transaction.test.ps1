@@ -2,7 +2,7 @@
 	Use cases:
 	- TransactionScope with two databases.
 	- TransactionScope with new database.
-	- Nested connection transactions.
+	- SQLiteConnection nested transactions.
 #>
 
 Set-StrictMode -Version 3
@@ -100,6 +100,9 @@ insert into t1 (name) values ("q1");
 	equals (Get-Item z.db).Length 0L
 	assert (!(Test-Path z.db-journal))
 
+	#!
+	[GC]::Collect($true)
+	[GC]::WaitForPendingFinalizers()
 	remove z.db
 }
 

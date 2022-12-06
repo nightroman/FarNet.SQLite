@@ -18,8 +18,12 @@ task build meta, {
 	exec { dotnet build -c $Configuration }
 }
 
+task clean {
+	remove src\bin, src\obj, README.htm, *.nupkg, z
+}
+
 task copy {
-	exec { robocopy FarNet.SQLite $ModuleRoot } (0..3)
+	exec { robocopy src\FarNet.SQLite $ModuleRoot } (0..3)
 }
 
 task publish copy, {
@@ -35,8 +39,9 @@ task publish copy, {
 	)
 }
 
-task clean {
-	remove src\bin, src\obj, README.htm, *.nupkg, z
+task help {
+	. Helps.ps1
+	Convert-Helps src\FarNet.SQLite-Help.ps1 $ModuleRoot\FarNet.SQLite-Help.xml
 }
 
 task version {
@@ -70,12 +75,12 @@ task meta -Inputs .build.ps1, Release-Notes.md -Outputs src\Directory.Build.prop
 "@
 }
 
-task package markdown, version, {
+task package help, markdown, version, {
 	remove z
 	$toModule = mkdir "z\tools\FarHome\FarNet\Lib\$ModuleName"
 
 	exec { robocopy $ModuleRoot $toModule /s /xf *.pdb SQLite.Interop.dll } 1
-	equals 7 (Get-ChildItem $toModule -Recurse).Count
+	equals 8 (Get-ChildItem $toModule -Recurse).Count
 
 	Copy-Item -Destination $toModule @(
 		"README.htm"
@@ -121,7 +126,7 @@ task nuget package, version, {
 	exec { NuGet.exe pack z\Package.nuspec }
 }
 
-task test {
+task test help, {
 	Invoke-Build ** tests
 }
 

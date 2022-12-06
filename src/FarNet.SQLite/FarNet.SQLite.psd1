@@ -18,5 +18,7 @@
 		'Get-SQLite'
 		'Close-SQLite'
 		'Complete-SQLite'
+		'New-SQLiteCommand'
+		'New-SQLiteParameter'
 	)
 }

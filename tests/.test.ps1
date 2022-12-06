@@ -89,9 +89,35 @@ insert into t1 (id) values ("q1");
 	Close-SQLite
 }
 
-# It's fine to close again
+# It's fine to close twice.
 task DoubleClose {
 	Open-SQLite
 	Close-SQLite
 	Close-SQLite
+}
+
+#! Fixed.
+task NullPositionalParameters {
+	Open-SQLite
+	Set-SQLite 'create table t1 (id, name)'
+	Set-SQLite 'insert into t1 (id, name) values (42, ?);' $null
+	Set-SQLite 'insert into t1 (id, name) values (?1, ?2);' $null, $null
+	$1, $2 = Get-SQLite 'select rowid, id, name from t1'
+	equals $1.rowid 1L
+	equals $1.id 42L
+	equals $1.name ([DBNull]::Value)
+	equals $2.rowid 2L
+	equals $2.id ([DBNull]::Value)
+	equals $2.name ([DBNull]::Value)
+	Close-SQLite
+}
+
+task WhyNewSQLiteParameter {
+	# these parameters look the same
+	$p1 = New-SQLiteParameter Time DateTime
+	$p2 = [System.Data.SQLite.SQLiteParameter]::new('Time', [datetime])
+
+	# but they are not
+	equals $p1.DbType ([System.Data.DbType]::DateTime)
+	equals $p2.DbType ([System.Data.DbType]::String)
 }

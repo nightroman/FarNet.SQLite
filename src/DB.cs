@@ -10,6 +10,7 @@ namespace System.Data.SQLite;
 public sealed class DB : IDisposable
 {
     readonly SQLiteConnection _connection;
+    LinkedList<IDisposable>? _garbage;
     SQLiteTransaction? _transaction;
 
     /// <summary>
@@ -31,6 +32,13 @@ public sealed class DB : IDisposable
         {
             _transaction.Dispose();
             _transaction = null;
+        }
+
+        if (_garbage != null)
+        {
+            foreach (var it in _garbage)
+                it.Dispose();
+            _garbage = null;
         }
 
         _connection.Dispose();
@@ -89,25 +97,80 @@ public sealed class DB : IDisposable
         }
     }
 
-    static void AddCommandParameters(SQLiteCommand command, object?[] parameters)
+    private SQLiteCommand CreateCommandPrivate(string command, object?[] parameters)
     {
+        var cmd = _connection.CreateCommand();
+        cmd.CommandText = command;
+
+        //! when null is passed as params
+        if (parameters is null)
+        {
+            cmd.Parameters.AddWithValue("1", null);
+            return cmd;
+        }
+
         foreach (var obj in parameters)
         {
             if (obj is IDictionary dic)
             {
                 foreach (DictionaryEntry it in dic)
-                    command.Parameters.AddWithValue(it.Key.ToString(), it.Value);
+                    cmd.Parameters.AddWithValue(it.Key.ToString(), it.Value);
                 continue;
             }
 
             if (obj is SQLiteParameter prm)
             {
-                command.Parameters.Add(prm);
+                cmd.Parameters.Add(prm);
                 continue;
             }
 
-            command.Parameters.AddWithValue((command.Parameters.Count + 1).ToString(), obj);
+            cmd.Parameters.AddWithValue((cmd.Parameters.Count + 1).ToString(), obj);
         }
+
+        return cmd;
+    }
+
+    /// <summary>
+    /// Creates a new command and optionally tells to dispose.
+    /// </summary>
+    /// <returns>The created command.</returns>
+    /// <param name="command">The command text.</param>
+    /// <param name="dispose">Tells to dispose on closing.</param>
+    /// <param name="parameters">The command parameters.</param>
+    public SQLiteCommand CreateCommand(string command, bool dispose, params SQLiteParameter[] parameters)
+    {
+        var cmd = _connection.CreateCommand();
+        cmd.CommandText = command;
+        if (parameters is not null)
+            cmd.Parameters.AddRange(parameters);
+
+        if (dispose)
+        {
+            _garbage ??= new();
+            _garbage.AddFirst(cmd);
+        }
+
+        return cmd;
+    }
+
+    /// <summary>
+    /// Creates a new command.
+    /// </summary>
+    /// <returns>The created command.</returns>
+    /// <param name="command">The command text.</param>
+    /// <param name="parameters">The command parameters.</param>
+    public SQLiteCommand CreateCommand(string command, params SQLiteParameter[] parameters)
+    {
+        return CreateCommand(command, false, parameters);
+    }
+
+    /// <summary>
+    /// Executes the non-query command.
+    /// </summary>
+    /// <param name="command">SQLiteCommand</param>
+    public void Execute(SQLiteCommand command)
+    {
+        command.ExecuteNonQuery();
     }
 
     /// <summary>
@@ -116,69 +179,85 @@ public sealed class DB : IDisposable
     /// <include file='doc.xml' path='doc/Execute/*'/>
     public void Execute(string command, params object?[] parameters)
     {
-        using var cmd = _connection.CreateCommand();
-        cmd.CommandText = command;
-        AddCommandParameters(cmd, parameters);
+        using var cmd = CreateCommandPrivate(command, parameters);
         cmd.ExecuteNonQuery();
     }
 
     /// <summary>
     /// Executes the non-query command and returns the number of affected records.
     /// </summary>
-    /// <include file='doc.xml' path='doc/Execute/*'/>
     /// <returns>The number of affected records.</returns>
+    /// <param name="command">SQLiteCommand</param>
+    public int ExecuteNonQuery(SQLiteCommand command)
+    {
+        return command.ExecuteNonQuery();
+    }
+
+    /// <summary>
+    /// Executes the non-query command and returns the number of affected records.
+    /// </summary>
+    /// <returns>The number of affected records.</returns>
+    /// <include file='doc.xml' path='doc/Execute/*'/>
     public int ExecuteNonQuery(string command, params object?[] parameters)
     {
-        using var cmd = _connection.CreateCommand();
-        cmd.CommandText = command;
-        AddCommandParameters(cmd, parameters);
+        using var cmd = CreateCommandPrivate(command, parameters);
         return cmd.ExecuteNonQuery();
     }
 
     /// <summary>
     /// Executes the query and returns the single value result.
     /// </summary>
-    /// <include file='doc.xml' path='doc/Execute/*'/>
     /// <returns>The result value.</returns>
+    /// <param name="command">SQLiteCommand</param>
+    public object ExecuteScalar(SQLiteCommand command)
+    {
+        return command.ExecuteScalar();
+    }
+
+    /// <summary>
+    /// Executes the query and returns the single value result.
+    /// </summary>
+    /// <returns>The result value.</returns>
+    /// <include file='doc.xml' path='doc/Execute/*'/>
     public object ExecuteScalar(string command, params object?[] parameters)
     {
-        using var cmd = _connection.CreateCommand();
-        cmd.CommandText = command;
-        AddCommandParameters(cmd, parameters);
+        using var cmd = CreateCommandPrivate(command, parameters);
         return cmd.ExecuteScalar();
     }
 
     /// <summary>
     /// Executes the query and returns the result data table.
     /// </summary>
-    /// <include file='doc.xml' path='doc/Execute/*'/>
     /// <returns>The result data table.</returns>
-    public DataTable ExecuteTable(string command, params object?[] parameters)
+    /// <param name="command">SQLiteCommand</param>
+    public DataTable ExecuteTable(SQLiteCommand command)
     {
-        using var cmd = _connection.CreateCommand();
-        cmd.CommandText = command;
-        AddCommandParameters(cmd, parameters);
-
-        using var adapter = new SQLiteDataAdapter(cmd);
+        using var adapter = new SQLiteDataAdapter(command);
         var table = new DataTable();
         adapter.Fill(table);
-
         return table;
+    }
+
+    /// <summary>
+    /// Executes the query and returns the result data table.
+    /// </summary>
+    /// <returns>The result data table.</returns>
+    /// <include file='doc.xml' path='doc/Execute/*'/>
+    public DataTable ExecuteTable(string command, params object?[] parameters)
+    {
+        return ExecuteTable(CreateCommandPrivate(command, parameters));
     }
 
     /// <summary>
     /// Executes the query and returns the first column values.
     /// </summary>
-    /// <include file='doc.xml' path='doc/Execute/*'/>
     /// <returns>The result values array.</returns>
-    public object[] ExecuteColumn(string command, params object?[] parameters)
+    /// <param name="command">SQLiteCommand</param>
+    public object[] ExecuteColumn(SQLiteCommand command)
     {
-        using var cmd = _connection.CreateCommand();
-        cmd.CommandText = command;
-        AddCommandParameters(cmd, parameters);
+        using var read = command.ExecuteReader();
 
         var list = new List<object>();
-        using var read = cmd.ExecuteReader();
         while (read.Read())
             list.Add(read.GetValue(0));
 
@@ -186,22 +265,39 @@ public sealed class DB : IDisposable
     }
 
     /// <summary>
+    /// Executes the query and returns the first column values.
+    /// </summary>
+    /// <returns>The result values array.</returns>
+    /// <include file='doc.xml' path='doc/Execute/*'/>
+    public object[] ExecuteColumn(string command, params object?[] parameters)
+    {
+        return ExecuteColumn(CreateCommandPrivate(command, parameters));
+    }
+
+    /// <summary>
     /// Executes the query and returns the first two column dictionary.
     /// </summary>
-    /// <include file='doc.xml' path='doc/Execute/*'/>
     /// <returns>The result dictionary.</returns>
-    public Dictionary<object, object> ExecuteLookup(string command, params object?[] parameters)
+    /// <param name="command">SQLiteCommand</param>
+    public Dictionary<object, object> ExecuteLookup(SQLiteCommand command)
     {
-        using var cmd = _connection.CreateCommand();
-        cmd.CommandText = command;
-        AddCommandParameters(cmd, parameters);
+        using var read = command.ExecuteReader();
 
         var dic = new Dictionary<object, object>();
-        using var read = cmd.ExecuteReader();
         while (read.Read())
             dic.Add(read.GetValue(0), read.GetValue(1));
 
         return dic;
+    }
+
+    /// <summary>
+    /// Executes the query and returns the first two column dictionary.
+    /// </summary>
+    /// <returns>The result dictionary.</returns>
+    /// <include file='doc.xml' path='doc/Execute/*'/>
+    public Dictionary<object, object> ExecuteLookup(string command, params object?[] parameters)
+    {
+        return ExecuteLookup(CreateCommandPrivate(command, parameters));
     }
 
     /// <summary>
