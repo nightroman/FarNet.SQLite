@@ -157,7 +157,7 @@ function Get-SQLite {
 		}
 
 		if ($Column) {
-			$Database.ExecuteColumn($Command)
+			, $Database.ExecuteColumn($Command)
 		}
 		elseif ($Lookup) {
 			$Database.ExecuteLookup($Command)
@@ -172,7 +172,7 @@ function Get-SQLite {
 	}
 	else {
 		if ($Column) {
-			$Database.ExecuteColumn($Command, $Parameters)
+			, $Database.ExecuteColumn($Command, $Parameters)
 		}
 		elseif ($Lookup) {
 			$Database.ExecuteLookup($Command, $Parameters)

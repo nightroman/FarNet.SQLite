@@ -86,7 +86,7 @@ insert into t1 (name) values ("q1");
 	# create db, add data, test, close
 	Open-SQLite z.db
 	Set-SQLite $init
-	equals q1 (Get-SQLite -Column 'select name from t1')
+	equals q1 (Get-SQLite -Column 'select name from t1')[0]
 	Close-SQLite
 
 	# these files are created

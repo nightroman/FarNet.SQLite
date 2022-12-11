@@ -52,8 +52,8 @@ $_Parameters = @'
 	parameters = @{
 		Command = $_Command
 		Parameters = $_Parameters
-		Column = 'Tells to return the first column values array.'
-		Lookup = 'Tells to return the first two columns dictionary.'
+		Column = 'Tells to return an array of the first column values.'
+		Lookup = 'Tells to return a dictionary of the first two columns.'
 		Scalar = 'Tells to return the first result value.'
 		Table = 'Tells to return the result as DataTable.'
 		Database = $_Database
@@ -68,12 +68,16 @@ $_Parameters = @'
 			description = 'When -Table.'
 		}
 		@{
-			type = 'Dictionary'
-			description = 'When -Lookup.'
+			type = 'Object'
+			description = 'When -Scalar.'
 		}
 		@{
-			type = 'Object'
-			description = 'When -Column or -Scalar.'
+			type = 'Object[]'
+			description = 'When -Column.'
+		}
+		@{
+			type = 'Dictionary'
+			description = 'When -Lookup.'
 		}
 	)
 }

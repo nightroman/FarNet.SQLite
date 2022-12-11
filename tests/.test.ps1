@@ -121,3 +121,23 @@ task WhyNewSQLiteParameter {
 	equals $p1.DbType ([System.Data.DbType]::DateTime)
 	equals $p2.DbType ([System.Data.DbType]::String)
 }
+
+task GetColumnShouldReturnArray {
+	Open-SQLite
+	Set-SQLite 'create table t1 (Name)'
+
+	$r = Get-SQLite -Column 'select Name from t1'
+	equals $r.GetType().Name 'Object[]'
+	equals $r.Length 0
+
+	Set-SQLite 'insert into t1 (name) values ("q1")'
+
+	$r = Get-SQLite -Column 'select Name from t1'
+	equals $r.GetType().Name 'Object[]'
+	equals $r.Length 1
+
+	$cmd = New-SQLiteCommand 'select Name from t1'
+	$r = Get-SQLite -Column $cmd
+	equals $r.GetType().Name 'Object[]'
+	equals $r.Length 1
+}

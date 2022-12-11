@@ -1,5 +1,9 @@
 # FarNet.SQLite Release Notes
 
+## v0.3.1
+
+`Get-SQLite -Column` always returns array, including 0 and 1 values.
+
 ## v0.3.0
 
 **API**
