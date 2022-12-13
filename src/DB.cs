@@ -313,4 +313,32 @@ public sealed class DB : IDisposable
         action();
         transaction.Commit();
     }
+
+    object? BindScalarFunction(Func<object[], object> function, object[] args)
+    {
+        foreach (var arg in args)
+        {
+            if (arg is null || arg == DBNull.Value)
+                return null;
+        }
+
+        return function(args);
+    }
+
+    /// <summary>
+    /// Binds the scalar function.
+    /// </summary>
+    /// <param name="name">The function name.</param>
+    /// <param name="argumentCount">The argument count.</param>
+    /// <param name="function">The function with an array of arguments as input.</param>
+    /// <remarks>
+    /// If any argument is null then the function is not called and the result is <c>DBNull.Value</c>.
+    /// </remarks>
+    public void BindScalarFunction(string name, int argumentCount, Func<object[], object> function)
+    {
+        _connection.BindFunction(
+            new SQLiteFunctionAttribute(name, argumentCount, FunctionType.Scalar),
+            (object[] args) => BindScalarFunction(function, (object[])args[1]),
+            null);
+    }
 }

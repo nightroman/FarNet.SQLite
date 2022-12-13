@@ -1,5 +1,13 @@
 # FarNet.SQLite Release Notes
 
+## v0.3.2
+
+Implemented `REGEXP` (operator and function).
+
+Added the helper `BindScalarFunction`, mostly designed for .NET use. It works
+in PowerShell with script blocks as functions, too, but result values may be
+converted to strings (PS 5.1). This will be fixed later in dll PS module.
+
 ## v0.3.1
 
 `Get-SQLite -Column` always returns array, including 0 and 1 values.

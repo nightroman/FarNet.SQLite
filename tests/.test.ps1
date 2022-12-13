@@ -1,4 +1,5 @@
 ﻿
+$Version = $PSVersionTable.PSVersion.Major
 Set-StrictMode -Version 3
 Import-Module FarNet.SQLite
 
@@ -140,4 +141,94 @@ task GetColumnShouldReturnArray {
 	$r = Get-SQLite -Column $cmd
 	equals $r.GetType().Name 'Object[]'
 	equals $r.Length 1
+
+	Close-SQLite
+}
+
+task Regexp {
+	Open-SQLite
+
+	# works as operator
+	$r = Get-SQLite -Scalar 'SELECT "йцукен" REGEXP "^.*цук.*$"'
+	equals $r 1L
+
+	# works as function
+	$r = Get-SQLite -Scalar 'SELECT REGEXP("^.*цук.*$", "йцукен")'
+	equals $r 1L
+
+	# it is case sensitive
+	$r = Get-SQLite -Scalar 'SELECT "йцукен" REGEXP "^.*ЦУК.*$"'
+	equals $r 0L
+
+	# how to make it case insensitive
+	$r = Get-SQLite -Scalar 'SELECT "йцукен" REGEXP "(?i)^.*ЦУК.*$"'
+	equals $r 1L
+
+	# any argument not string -> false
+	$r = Get-SQLite -Scalar 'SELECT 1 REGEXP "1"'
+	equals $r 0L
+	$r = Get-SQLite -Scalar 'SELECT "1" REGEXP 1'
+	equals $r 0L
+
+	Close-SQLite
+}
+
+task BindFunction1 {
+	Open-SQLite
+	$db.BindScalarFunction('ToUpper', 1, {$args[0][0].ToUpper()})
+	$db.BindScalarFunction('TestNull', 1, {throw '_221213_0843'})
+
+	# works
+	$r = Get-SQLite -Scalar 'SELECT ToUpper("йцукен")'
+	equals $r ЙЦУКЕН
+
+	# exception -> null, exception "swallowed"
+	$r = Get-SQLite -Scalar 'SELECT TestNull("йцукен")'
+	equals $r ([DBNull]::Value)
+	equals "$($Error[0])" _221213_0843
+	$Error.Clear()
+
+	# null is passed -> function is not called
+	$r = Get-SQLite -Scalar 'SELECT TestNull(null)'
+	equals $r ([DBNull]::Value)
+	equals $Error.Count 0
+
+	Close-SQLite
+}
+
+task BindFunction2 {
+	Open-SQLite
+	$db.BindScalarFunction('Add2', 2, {$args[0][0] + $args[0][1]})
+	$db.BindScalarFunction('TestNull', 2, {throw '_221213_0843'})
+
+	# works
+	$r = Get-SQLite -Scalar 'SELECT Add2("йцукен", "qwerty")'
+	equals $r йцукенqwerty
+
+	# works, but...
+	$r = Get-SQLite -Scalar 'SELECT Add2(42, 3.14)'
+	if ($Version -ge 7) {
+		equals $r 45.14 #! double
+	}
+	else {
+		equals $r '45.14' #! string, PSObject converted to string by SQLite
+	}
+
+	# exception -> null, exception "swallowed"
+	$r = Get-SQLite -Scalar 'SELECT TestNull("1", "2")'
+	equals $r ([DBNull]::Value)
+	equals "$($Error[0])" _221213_0843
+	$Error.Clear()
+
+	# null is passed as arg 1 -> function is not called
+	$r = Get-SQLite -Scalar 'SELECT TestNull(null, "2")'
+	equals $r ([DBNull]::Value)
+	equals $Error.Count 0
+
+	# null is passed as arg 2 -> function is not called
+	$r = Get-SQLite -Scalar 'SELECT TestNull("1", null)'
+	equals $r ([DBNull]::Value)
+	equals $Error.Count 0
+
+	Close-SQLite
 }
