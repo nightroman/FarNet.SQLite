@@ -3,11 +3,11 @@ Set-StrictMode -Version 3
 Import-Module FarNet.SQLite
 
 $_Database = @'
-		The database from `Open-SQLite`, the variable $db by default.
+		The database from `Open-SQLite`, the variable `$db` by default.
 '@
 
 $_Command = @'
-		Specifies the command, either command text or complete SQLiteCommand.
+		Specifies the command, either text or `SQLiteCommand`.
 '@
 
 $_Parameters = @'
@@ -202,4 +202,23 @@ $_Parameters = @'
 			description = 'With -Result, the affected records count.'
 		}
 	)
+}
+
+### Register-SQLiteFunction
+@{
+	command = 'Register-SQLiteFunction'
+	synopsis = 'Registers script blocks as SQLite functions.'
+	description = @'
+	This command registers the specified script as SQLite function.
+	Script and function argument count is specified by Arguments.
+
+	If any SQLite argument is null then the function returns null and the
+	script is not called. If the script fails then the function returns null.
+'@
+	parameters = @{
+		Name = 'The SQLite function name.'
+		Arguments = 'The function and script argument count.'
+		Script = 'The script registered as the SQLite function.'
+		Database = $_Database
+	}
 }

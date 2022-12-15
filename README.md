@@ -25,7 +25,7 @@ is installed to `%FARHOME%\FarNet\Lib\FarNet.SQLite`.
     Helper methods to simplify typical tasks routine coding.\
     They are designed for C# and F# and used in PowerShell.
 
-- `FarNet.SQLite.psm1`
+- `FarNet.SQLite.psd1`, ...
 
     The PowerShell module with `FarNet.SQLite.dll` helpers.\
     Consider using the module in scripts, this way is much easier.
@@ -105,9 +105,8 @@ Import-Module FarNet.SQLite
 # get its commands
 Get-Command -Module FarNet.SQLite
 
-# see help
-Open-SQLite -?
-help Open-SQLite -full
+# see command help
+help Open-SQLite
 ```
 
 ### Typical scripts

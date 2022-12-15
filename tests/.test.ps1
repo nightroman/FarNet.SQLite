@@ -1,7 +1,7 @@
 ﻿
-$Version = $PSVersionTable.PSVersion.Major
 Set-StrictMode -Version 3
 Import-Module FarNet.SQLite
+$Version = $PSVersionTable.PSVersion.Major
 
 task BasicDefaultVariable {
 	Open-SQLite
@@ -55,7 +55,7 @@ task OpenParameters {
 	Close-SQLite
 
 	Open-SQLite -AllowNestedTransactions -ForeignKeys -ReadOnly
-	equals $db.Connection.ConnectionString 'flags="AllowNestedTransactions, Default";foreignkeys=True;readonly=True;data source=:memory:'
+	equals $db.Connection.ConnectionString 'flags="AllowNestedTransactions, Default";foreign keys=True;read only=True;data source=:memory:'
 	Close-SQLite
 }
 
@@ -86,7 +86,7 @@ create table t1 (id string collate nocase primary key);
 insert into t1 (id) values ("q1");
 '@
 	($r = try { Set-SQLite 'insert into t1 (id) values ("Q1");' } catch { $_ })
-	assert "$r".Contains('UNIQUE constraint failed: t1.id"')
+	assert "$r".Contains('UNIQUE constraint failed: t1.id')
 	Close-SQLite
 }
 
@@ -231,4 +231,30 @@ task BindFunction2 {
 	equals $Error.Count 0
 
 	Close-SQLite
+}
+
+task RegisterFunction {
+	Open-SQLite
+	Register-SQLiteFunction MySq 1 {$args[0] * $args[0]}
+	Register-SQLiteFunction Add2 2 {$args[0] + $args[1]}
+
+	$r = Get-SQLite -Scalar 'SELECT MySq(42)'
+	equals $r 1764L
+
+	$r = Get-SQLite -Scalar 'SELECT Add2(42, 3.14)'
+	equals $r 45.14
+
+	$r = Get-SQLite -Scalar 'SELECT Add2("йцукен", "qwerty")'
+	equals $r йцукенqwerty
+
+	Close-SQLite
+}
+
+task Help {
+	(Get-Command -Module FarNet.SQLite).ForEach{
+		$_.Name
+		$r = Get-Help $_
+		assert ($r.Synopsis.EndsWith('.'))
+		assert ($r.Description.Count -ge 1)
+	}
 }

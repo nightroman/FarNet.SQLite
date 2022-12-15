@@ -14,25 +14,26 @@ $ModuleRoot = "$FarHome\FarNet\Lib\$ModuleName"
 $Description = 'System.Data.SQLite package for FarNet.'
 
 task build meta, {
-	Set-Location src
+	Set-Location src\PS.FarNet.SQLite
 	exec { dotnet build -c $Configuration }
 }
 
 task clean {
-	remove src\bin, src\obj, README.htm, *.nupkg, z
+	remove src\*\bin, src\*\obj, README.htm, *.nupkg, z
 }
 
 task copy {
-	exec { robocopy src\FarNet.SQLite $ModuleRoot } (0..3)
+	exec { robocopy src\Resources $ModuleRoot } (0..3)
 }
 
 task publish copy, {
 	Set-Location src
-	$v1 = (Select-Xml '//PackageReference[@Include="Stub.System.Data.SQLite.Core.NetStandard"]' FarNet.SQLite.csproj).Node.Version
+	$v1 = (Select-Xml '//PackageReference[@Include="Stub.System.Data.SQLite.Core.NetStandard"]' FarNet.SQLite\FarNet.SQLite.csproj).Node.Version
 
 	Copy-Item -Destination $ModuleRoot @(
-		"bin\$Configuration\netstandard2.0\FarNet.SQLite.dll"
-		"bin\$Configuration\netstandard2.0\FarNet.SQLite.xml"
+		"FarNet.SQLite\bin\$Configuration\netstandard2.0\FarNet.SQLite.dll"
+		"FarNet.SQLite\bin\$Configuration\netstandard2.0\FarNet.SQLite.xml"
+		"PS.FarNet.SQLite\bin\$Configuration\netstandard2.0\PS.FarNet.SQLite.dll"
 		"$HOME\.nuget\packages\Stub.System.Data.SQLite.Core.NetStandard\$v1\lib\netstandard2.0\System.Data.SQLite.dll"
 		"$HOME\.nuget\packages\Stub.System.Data.SQLite.Core.NetStandard\$v1\lib\netstandard2.0\System.Data.SQLite.xml"
 		"$HOME\.nuget\packages\Stub.System.Data.SQLite.Core.NetStandard\$v1\runtimes\win-x64\native\SQLite.Interop.dll"
@@ -41,7 +42,7 @@ task publish copy, {
 
 task help {
 	. Helps.ps1
-	Convert-Helps src\FarNet.SQLite-Help.ps1 $ModuleRoot\FarNet.SQLite-Help.xml
+	Convert-Helps src\Help.ps1 $ModuleRoot\PS.FarNet.SQLite.dll-Help.xml
 }
 
 task version {
@@ -79,7 +80,7 @@ task package help, markdown, version, {
 	remove z
 	$toModule = mkdir "z\tools\FarHome\FarNet\Lib\$ModuleName"
 
-	exec { robocopy $ModuleRoot $toModule /s /xf *.pdb SQLite.Interop.dll } 1
+	exec { robocopy $ModuleRoot $toModule /s /xf SQLite.Interop.dll } 1
 	equals 8 (Get-ChildItem $toModule -Recurse).Count
 
 	Copy-Item -Destination $toModule @(
@@ -87,7 +88,7 @@ task package help, markdown, version, {
 		"LICENSE"
 	)
 
-	$v1 = (Select-Xml '//PackageReference[@Include="Stub.System.Data.SQLite.Core.NetStandard"]' src\FarNet.SQLite.csproj).Node.Version
+	$v1 = (Select-Xml '//PackageReference[@Include="Stub.System.Data.SQLite.Core.NetStandard"]' src\FarNet.SQLite\FarNet.SQLite.csproj).Node.Version
 	foreach($x in 'x64', 'x86') {
 		$to = mkdir "z\tools\FarHome.$x\FarNet\Lib\$ModuleName"
 		Copy-Item "$HOME\.nuget\packages\Stub.System.Data.SQLite.Core.NetStandard\$v1\runtimes\win-$x\native\SQLite.Interop.dll" $to

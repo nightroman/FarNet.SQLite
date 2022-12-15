@@ -6,19 +6,20 @@
 	GUID = 'b46a23d4-b293-47be-9f8e-c5093e6fd5d8'
 
 	PowerShellVersion = '5.1'
-	RootModule = 'FarNet.SQLite.psm1'
+	RootModule = 'PS.FarNet.SQLite.dll'
 	RequiredAssemblies = 'FarNet.SQLite.dll', 'System.Data.SQLite.dll'
 
 	AliasesToExport = @()
-	CmdletsToExport = @()
+	FunctionsToExport = @()
 	VariablesToExport = @()
-	FunctionsToExport = @(
+	CmdletsToExport = @(
 		'Open-SQLite'
-		'Set-SQLite'
 		'Get-SQLite'
+		'Set-SQLite'
 		'Close-SQLite'
 		'Complete-SQLite'
 		'New-SQLiteCommand'
 		'New-SQLiteParameter'
+		'Register-SQLiteFunction'
 	)
 }
