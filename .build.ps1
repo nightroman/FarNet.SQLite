@@ -23,7 +23,7 @@ task clean {
 }
 
 task copy {
-	exec { robocopy src\Resources $ModuleRoot } (0..3)
+	exec { robocopy src\Content $ModuleRoot } (0..3)
 }
 
 task publish copy, {

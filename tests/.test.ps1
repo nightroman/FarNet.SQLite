@@ -252,9 +252,9 @@ task RegisterFunction {
 
 task Help {
 	(Get-Command -Module FarNet.SQLite).ForEach{
-		$_.Name
+		Write-Host $_.Name
 		$r = Get-Help $_
-		assert ($r.Synopsis.EndsWith('.'))
-		assert ($r.Description.Count -ge 1)
+		assert ($r.Synopsis.EndsWith('.')) 'Missing or unexpected Synopsis?'
+		assert ($r.Description.Count -ge 1) 'Missing or unexpected Description?'
 	}
 }

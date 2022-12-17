@@ -222,3 +222,25 @@ $_Parameters = @'
 		Database = $_Database
 	}
 }
+
+### Use-SQLiteTransaction
+@{
+	command = 'Use-SQLiteTransaction'
+	synopsis = 'Invokes script using a transaction.'
+	description = @'
+	This command begins a new transaction and invokes the specified script.
+	If the script completes without terminating errors the transaction commits.
+
+	Consider using `Open-SQLite -Transaction` and `Complete-SQLite` instead.
+
+	Open the database with `AllowNestedTransactions` for nested transactions.
+'@
+	parameters = @{
+		Script = 'The script invoked using a new transaction.'
+		Database = $_Database
+	}
+	outputs = @{
+		type = 'None, Object, Object[]'
+		description = 'Output of the invoked script.'
+	}
+}

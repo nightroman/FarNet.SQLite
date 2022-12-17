@@ -1,5 +1,9 @@
 # FarNet.SQLite Release Notes
 
+## v0.4.1
+
+New cmdlet `Use-SQLiteTransaction` (comes back with known issues resolved).
+
 ## v0.4.0
 
 Converted PS module from script to binary. This slightly improves performance

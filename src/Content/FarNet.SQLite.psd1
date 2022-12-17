@@ -21,5 +21,6 @@
 		'New-SQLiteCommand'
 		'New-SQLiteParameter'
 		'Register-SQLiteFunction'
+		'Use-SQLiteTransaction'
 	)
 }

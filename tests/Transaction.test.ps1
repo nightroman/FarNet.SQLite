@@ -2,7 +2,8 @@
 	Use cases:
 	- TransactionScope with two databases.
 	- TransactionScope with new database.
-	- SQLiteConnection nested transactions.
+	- $db(SQLiteConnection) nested transactions.
+	- Use-SQLiteTransaction nested transactions.
 #>
 
 Set-StrictMode -Version 3
@@ -106,8 +107,50 @@ insert into t1 (name) values ("q1");
 	remove z.db
 }
 
-# This test uses C# API.
-task NestedTransactions {
+# This test uses Use-SQLiteTransaction.
+task NestedTransactions1 {
+	Open-SQLite -AllowNestedTransactions
+
+	Set-SQLite 'create table t1 (name)'
+
+	Use-SQLiteTransaction {
+		Set-SQLite 'insert into t1 (name) values ("q1")'
+
+		Use-SQLiteTransaction {
+			Set-SQLite 'insert into t1 (name) values ("q2")'
+		}
+
+		try {
+			Use-SQLiteTransaction {
+				Set-SQLite 'insert into t1 (name) values ("bad")'
+				throw 'oops in nested'
+			}
+		}
+		catch {}
+
+		Use-SQLiteTransaction {
+			Set-SQLite 'insert into t1 (name) values ("q3")'
+
+			try {
+				Use-SQLiteTransaction {
+					Set-SQLite 'insert into t1 (name) values ("bad")'
+					throw 'oops in nested'
+				}
+			}
+			catch {}
+
+			Set-SQLite 'insert into t1 (name) values ("q4")'
+		}
+
+		Set-SQLite 'insert into t1 (name) values ("q5")'
+	}
+
+	($r = Get-SQLite -Column 'select * from t1')
+	equals ($r -join ',') 'q1,q2,q3,q4,q5'
+}
+
+# This test uses C# API (not designed for scripts).
+task NestedTransactions2 {
 	$db = [System.Data.SQLite.DB]::new(':memory:', 'Flags=AllowNestedTransactions')
 
 	$db.Execute('create table t1 (name)')
@@ -163,6 +206,43 @@ task BadComplete2 {
 
 	($r = try { Complete-SQLite } catch { $_ })
 	assert "$r".Contains("There is no active transaction. It is either completed or not created.")
+
+	Close-SQLite
+}
+
+# Error should point to the error line.
+task TransactionError {
+	Open-SQLite
+
+	$r = try {
+		Use-SQLiteTransaction {
+			throw 'oops'
+		}
+	}
+	catch {
+		$_
+	}
+
+	equals "$r" oops
+	equals $r.InvocationInfo.Line.Trim() "throw 'oops'"
+
+	Close-SQLite
+}
+
+task TransactionOutput {
+	Open-SQLite
+
+	$r = Use-SQLiteTransaction {}
+	equals $r $null
+
+	$r = Use-SQLiteTransaction {42}
+	equals $r 42
+
+	$r = Use-SQLiteTransaction {42; 3.14}
+	equals $r.GetType().Name 'Object[]'
+	equals $r.Count 2
+	equals $r[0] 42
+	equals $r[1] 3.14
 
 	Close-SQLite
 }
