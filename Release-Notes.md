@@ -1,5 +1,9 @@
 # FarNet.SQLite Release Notes
 
+## v0.4.2
+
+Maintenance.
+
 ## v0.4.1
 
 New cmdlet `Use-SQLiteTransaction` (comes back with known issues resolved).

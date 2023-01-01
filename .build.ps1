@@ -83,6 +83,10 @@ task package help, markdown, version, {
 	exec { robocopy $ModuleRoot $toModule /s /xf SQLite.Interop.dll } 1
 	equals 8 (Get-ChildItem $toModule -Recurse).Count
 
+	Copy-Item -Destination z @(
+		'README.md'
+	)
+
 	Copy-Item -Destination $toModule @(
 		"README.htm"
 		"LICENSE"
@@ -104,8 +108,6 @@ task nuget package, version, {
 	($dllVersion = (Get-Item "$ModuleRoot\$ModuleName.dll").VersionInfo.FileVersion.ToString())
 	equals $dllVersion $Version
 
-	Copy-Item README.md z
-
 	Set-Content z\Package.nuspec @"
 <?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
@@ -114,12 +116,12 @@ task nuget package, version, {
 		<version>$Version</version>
 		<authors>Roman Kuzmin</authors>
 		<owners>Roman Kuzmin</owners>
-		<projectUrl>https://github.com/nightroman/$ModuleName</projectUrl>
 		<license type="expression">MIT</license>
+		<readme>README.md</readme>
+		<projectUrl>https://github.com/nightroman/$ModuleName</projectUrl>
 		<description>$Description</description>
 		<releaseNotes>https://github.com/nightroman/$ModuleName/blob/main/Release-Notes.md</releaseNotes>
 		<tags>FarManager FarNet SQLite Database</tags>
-		<readme>README.md</readme>
 	</metadata>
 </package>
 "@
