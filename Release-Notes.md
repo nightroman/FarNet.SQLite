@@ -1,5 +1,9 @@
 # FarNet.SQLite Release Notes
 
+## v0.4.3
+
+System.Data.SQLite 1.0.118
+
 ## v0.4.2
 
 Maintenance.

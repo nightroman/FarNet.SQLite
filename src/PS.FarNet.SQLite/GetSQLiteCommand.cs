@@ -4,9 +4,16 @@ using System.Management.Automation;
 
 namespace PS.FarNet.SQLite;
 
-[Cmdlet("Set", "SQLite")]
-public sealed class SetSQLiteCommand : BaseDBCmdlet
+[Cmdlet("Get", "SQLite", DefaultParameterSetName = PsnRows)]
+public sealed class GetSQLiteCommand : BaseDBCmdlet
 {
+    const string
+        PsnRows = "Rows",
+        PsnColumn = "Column",
+        PsnLookup = "Lookup",
+        PsnScalar = "Scalar",
+        PsnTable = "Table";
+
     [Parameter(Position = 0, Mandatory = true)]
     public object Command { get; set; }
 
@@ -15,8 +22,17 @@ public sealed class SetSQLiteCommand : BaseDBCmdlet
     [Parameter(Position = 1)]
     public object[] Parameters { get; set; } = Array.Empty<object>();
 
-    [Parameter]
-    public SwitchParameter Result { get; set; }
+    [Parameter(ParameterSetName = PsnColumn, Mandatory = true)]
+    public SwitchParameter Column { get; set; }
+
+    [Parameter(ParameterSetName = PsnLookup, Mandatory = true)]
+    public SwitchParameter Lookup { get; set; }
+
+    [Parameter(ParameterSetName = PsnScalar, Mandatory = true)]
+    public SwitchParameter Scalar { get; set; }
+
+    [Parameter(ParameterSetName = PsnTable, Mandatory = true)]
+    public SwitchParameter Table { get; set; }
 
     [Parameter]
     public override DB Database { get; set; }
@@ -32,13 +48,25 @@ public sealed class SetSQLiteCommand : BaseDBCmdlet
             if (Parameters is null || Parameters.Length > 0)
                 throw new PSArgumentException("Parameters are not used with SQLiteCommand command.", nameof(Parameters));
 
-            if (Result)
+            if (Column)
             {
-                WriteObject(Database.ExecuteNonQuery(cmd));
+                WriteObject(Database.ExecuteColumn(cmd));
+            }
+            else if (Lookup)
+            {
+                WriteObject(Database.ExecuteLookup(cmd));
+            }
+            else if (Scalar)
+            {
+                WriteObject(Database.ExecuteScalar(cmd));
             }
             else
             {
-                Database.Execute(cmd);
+                var dt = Database.ExecuteTable(cmd);
+                if (Table)
+                    WriteObject(dt);
+                else
+                    WriteObject(dt.Rows, true);
             }
         }
         else
@@ -50,13 +78,25 @@ public sealed class SetSQLiteCommand : BaseDBCmdlet
             }
 
             var text = Command.ToString();
-            if (Result)
+            if (Column)
             {
-                WriteObject(Database.ExecuteNonQuery(text, Parameters));
+                WriteObject(Database.ExecuteColumn(text, Parameters));
+            }
+            else if (Lookup)
+            {
+                WriteObject(Database.ExecuteLookup(text, Parameters));
+            }
+            else if (Scalar)
+            {
+                WriteObject(Database.ExecuteScalar(text, Parameters));
             }
             else
             {
-                Database.Execute(text, Parameters);
+                var dt = Database.ExecuteTable(text, Parameters);
+                if (Table)
+                    WriteObject(dt);
+                else
+                    WriteObject(dt.Rows, true);
             }
         }
     }
