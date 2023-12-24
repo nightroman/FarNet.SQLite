@@ -19,9 +19,9 @@ create index t1_Name on t1(Name);
 # get and insert data with a json field
 $data = Get-Process conhost*, far*
 foreach($_ in $data) {
-	$db.Execute('insert into t1 (Value) values (@Value)', @{
+	Set-SQLite 'insert into t1 (Value) values (@Value)' @{
 		Value = $_ | Select-Object Id, Name, WorkingSet, Handles | ConvertTo-Json -Compress
-	})
+	}
 }
 
 # show Id, Name, WorkingSet
