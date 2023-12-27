@@ -1,5 +1,4 @@
-﻿using System;
-using System.Data.SQLite;
+﻿using System.Data.SQLite;
 using System.Management.Automation;
 
 namespace PS.FarNet.SQLite;
@@ -13,7 +12,7 @@ public sealed class SetSQLiteCommand : BaseDBCmdlet
     //! Empty as default ~ no parameters.
     //! Allow null ~ one null parameter.
     [Parameter(Position = 1)]
-    public object[] Parameters { get; set; } = Array.Empty<object>();
+    public object[] Parameters { get; set; } = [];
 
     [Parameter]
     public SwitchParameter Result { get; set; }

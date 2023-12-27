@@ -184,13 +184,13 @@ task BindFunction1 {
 
 	# exception -> null, exception "swallowed"
 	$r = Get-SQLite -Scalar 'SELECT TestNull("йцукен")'
-	equals $r ([DBNull]::Value)
+	equals $r $null
 	equals "$($Error[0])" _221213_0843
 	$Error.Clear()
 
 	# null is passed -> function is not called
 	$r = Get-SQLite -Scalar 'SELECT TestNull(null)'
-	equals $r ([DBNull]::Value)
+	equals $r $null
 	equals $Error.Count 0
 
 	Close-SQLite
@@ -216,18 +216,18 @@ task BindFunction2 {
 
 	# exception -> null, exception "swallowed"
 	$r = Get-SQLite -Scalar 'SELECT TestNull("1", "2")'
-	equals $r ([DBNull]::Value)
+	equals $r $null
 	equals "$($Error[0])" _221213_0843
 	$Error.Clear()
 
 	# null is passed as arg 1 -> function is not called
 	$r = Get-SQLite -Scalar 'SELECT TestNull(null, "2")'
-	equals $r ([DBNull]::Value)
+	equals $r $null
 	equals $Error.Count 0
 
 	# null is passed as arg 2 -> function is not called
 	$r = Get-SQLite -Scalar 'SELECT TestNull("1", null)'
-	equals $r ([DBNull]::Value)
+	equals $r $null
 	equals $Error.Count 0
 
 	Close-SQLite
@@ -257,4 +257,42 @@ task Help {
 		assert ($r.Synopsis.EndsWith('.')) 'Missing or unexpected Synopsis?'
 		assert ($r.Description.Count -ge 1) 'Missing or unexpected Description?'
 	}
+}
+
+task DBNull {
+	Open-SQLite
+	Set-SQLite @'
+create table t1 (Key, Value);
+insert into t1 (Key, Value) values ('Joe', 42);
+insert into t1 (Key, Value) values ('May', null);
+insert into t1 (Key, Value) values (null, 3.14);
+'@
+
+	# Column
+	$r = Get-SQLite -Column 'select Value from t1'
+	equals $r.Count 3
+	equals $r[0] 42L
+	equals $r[1] $null
+	equals $r[2] 3.14
+
+	# Lookup
+	$r = Get-SQLite -Lookup 'select Key, Value from t1'
+	equals $r.Count 3
+	equals $r['Joe'] 42L
+	equals $r['May'] $null
+	equals $r[[System.DBNull]::Value] 3.14
+
+	# Scalar
+	$r = Get-SQLite -Scalar 'select Value from t1 where Key="May"'
+	equals $r $null
+
+	# Table
+	$r = Get-SQLite -Table 'select Value from t1'
+	equals $r.Rows[1]['Value'] ([System.DBNull]::Value)
+
+	# Rows
+	$r = Get-SQLite 'select Value from t1'
+	equals $r[1]['Value'] ([System.DBNull]::Value)
+
+	Close-SQLite
 }

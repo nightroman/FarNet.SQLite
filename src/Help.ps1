@@ -48,13 +48,15 @@ $_Parameters = @'
 	This command invokes query commands like SELECT. It returns `DataRow`
 	objects by default. Use `Scalar`, `Column`, `Lookup`, `Table` for
 	different results, depending on the query.
+
+	DBNull values are converted to nulls with Scalar, Column, Lookup.
 '@
 	parameters = @{
 		Command = $_Command
 		Parameters = $_Parameters
-		Column = 'Tells to return an array of the first column values.'
-		Lookup = 'Tells to return a dictionary of the first two columns.'
-		Scalar = 'Tells to return the first result value.'
+		Column = 'Tells to return an array of the first column values. DBNull values are converted to nulls.'
+		Lookup = 'Tells to return a dictionary of the first two columns. DBNull values are converted to nulls.'
+		Scalar = 'Tells to return the first result value. DBNull values are converted to nulls.'
 		Table = 'Tells to return the result as DataTable.'
 		Database = $_Database
 	}

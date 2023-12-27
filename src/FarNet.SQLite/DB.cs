@@ -206,23 +206,26 @@ public sealed class DB : IDisposable
 
     /// <summary>
     /// Executes the query and returns the single value result.
+    /// <c>DBNull</c> values are converted to nulls.
     /// </summary>
     /// <returns>The result value.</returns>
     /// <param name="command">SQLiteCommand</param>
-    public object ExecuteScalar(SQLiteCommand command)
+    public object? ExecuteScalar(SQLiteCommand command)
     {
         return command.ExecuteScalar();
     }
 
     /// <summary>
     /// Executes the query and returns the single value result.
+    /// <c>DBNull</c> values are converted to nulls.
     /// </summary>
     /// <returns>The result value.</returns>
     /// <include file='doc.xml' path='doc/Execute/*'/>
-    public object ExecuteScalar(string command, params object?[] parameters)
+    public object? ExecuteScalar(string command, params object?[] parameters)
     {
         using var cmd = CreateCommandPrivate(command, parameters);
-        return cmd.ExecuteScalar();
+        var value = cmd.ExecuteScalar();
+        return DBNull.Value.Equals(value) ? null : value;
     }
 
     /// <summary>
@@ -250,52 +253,63 @@ public sealed class DB : IDisposable
 
     /// <summary>
     /// Executes the query and returns the first column values.
+    /// <c>DBNull</c> values are converted to nulls.
     /// </summary>
     /// <returns>The result values array.</returns>
     /// <param name="command">SQLiteCommand</param>
-    public object[] ExecuteColumn(SQLiteCommand command)
+    public object?[] ExecuteColumn(SQLiteCommand command)
     {
         using var read = command.ExecuteReader();
 
-        var list = new List<object>();
+        List<object?> list = [];
         while (read.Read())
-            list.Add(read.GetValue(0));
+        {
+            var value = read.GetValue(0);
+            list.Add(DBNull.Value.Equals(value) ? null : value);
+        }
 
-        return list.ToArray();
+        return [.. list];
     }
 
     /// <summary>
     /// Executes the query and returns the first column values.
+    /// <c>DBNull</c> values are converted to nulls.
     /// </summary>
     /// <returns>The result values array.</returns>
     /// <include file='doc.xml' path='doc/Execute/*'/>
-    public object[] ExecuteColumn(string command, params object?[] parameters)
+    public object?[] ExecuteColumn(string command, params object?[] parameters)
     {
         return ExecuteColumn(CreateCommandPrivate(command, parameters));
     }
 
     /// <summary>
     /// Executes the query and returns the first two column dictionary.
+    /// <c>DBNull</c> values are converted to nulls.
     /// </summary>
     /// <returns>The result dictionary.</returns>
     /// <param name="command">SQLiteCommand</param>
-    public Dictionary<object, object> ExecuteLookup(SQLiteCommand command)
+    public Dictionary<object, object?> ExecuteLookup(SQLiteCommand command)
     {
         using var read = command.ExecuteReader();
 
-        var dic = new Dictionary<object, object>();
+        Dictionary<object, object?> dic = [];
         while (read.Read())
-            dic.Add(read.GetValue(0), read.GetValue(1));
+        {
+            var key = read.GetValue(0);
+            var value = read.GetValue(1);
+            dic.Add(key, DBNull.Value.Equals(value) ? null : value);
+        }
 
         return dic;
     }
 
     /// <summary>
     /// Executes the query and returns the first two column dictionary.
+    /// <c>DBNull</c> values are converted to nulls.
     /// </summary>
     /// <returns>The result dictionary.</returns>
     /// <include file='doc.xml' path='doc/Execute/*'/>
-    public Dictionary<object, object> ExecuteLookup(string command, params object?[] parameters)
+    public Dictionary<object, object?> ExecuteLookup(string command, params object?[] parameters)
     {
         return ExecuteLookup(CreateCommandPrivate(command, parameters));
     }
