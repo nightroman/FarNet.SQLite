@@ -42,7 +42,7 @@ task publish copy, {
 
 task help {
 	. Helps.ps1
-	Convert-Helps src\Help.ps1 $ModuleRoot\PS.FarNet.SQLite.dll-Help.xml
+	Convert-Helps Help.ps1 $ModuleRoot\PS.FarNet.SQLite.dll-Help.xml
 }
 
 task version {
@@ -71,8 +71,7 @@ task meta -Inputs .build.ps1, Release-Notes.md -Outputs src\Directory.Build.prop
 		<Description>$Description</Description>
 		<Product>$ModuleName</Product>
 		<Version>$Version</Version>
-		<FileVersion>$Version</FileVersion>
-		<AssemblyVersion>$Version</AssemblyVersion>
+		<IncludeSourceRevisionInInformationalVersion>False</IncludeSourceRevisionInInformationalVersion>
 	</PropertyGroup>
 </Project>
 "@
@@ -83,7 +82,6 @@ task package help, markdown, version, {
 	$toModule = mkdir "z\tools\FarHome\FarNet\Lib\$ModuleName"
 
 	exec { robocopy $ModuleRoot $toModule /s /xf SQLite.Interop.dll } 1
-	equals 8 (Get-ChildItem $toModule -Recurse).Count
 
 	Copy-Item -Destination z @(
 		'README.md'
@@ -104,11 +102,25 @@ task package help, markdown, version, {
 	$xml = Import-PsdXml $toModule\$ModuleName.psd1
 	Set-Psd $xml $Version 'Data/Table/Item[@Key="ModuleVersion"]'
 	Export-PsdXml $toModule\$ModuleName.psd1 $xml
+
+	Assert-SameFile.ps1 -Result (Get-ChildItem z\tools -Recurse -File -Name) -Text -View $env:MERGE @'
+FarHome\FarNet\Lib\FarNet.SQLite\FarNet.SQLite.dll
+FarHome\FarNet\Lib\FarNet.SQLite\FarNet.SQLite.ini
+FarHome\FarNet\Lib\FarNet.SQLite\FarNet.SQLite.psd1
+FarHome\FarNet\Lib\FarNet.SQLite\FarNet.SQLite.xml
+FarHome\FarNet\Lib\FarNet.SQLite\LICENSE
+FarHome\FarNet\Lib\FarNet.SQLite\PS.FarNet.SQLite.dll
+FarHome\FarNet\Lib\FarNet.SQLite\PS.FarNet.SQLite.dll-Help.xml
+FarHome\FarNet\Lib\FarNet.SQLite\README.htm
+FarHome\FarNet\Lib\FarNet.SQLite\System.Data.SQLite.dll
+FarHome\FarNet\Lib\FarNet.SQLite\System.Data.SQLite.xml
+FarHome.x64\FarNet\Lib\FarNet.SQLite\SQLite.Interop.dll
+FarHome.x86\FarNet\Lib\FarNet.SQLite\SQLite.Interop.dll
+'@
 }
 
 task nuget package, version, {
-	($dllVersion = (Get-Item "$ModuleRoot\$ModuleName.dll").VersionInfo.FileVersion.ToString())
-	equals $dllVersion $Version
+	equals $Version (Get-Item "$ModuleRoot\$ModuleName.dll").VersionInfo.ProductVersion
 
 	Set-Content z\Package.nuspec @"
 <?xml version="1.0"?>

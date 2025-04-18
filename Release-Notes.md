@@ -1,5 +1,9 @@
 # FarNet.SQLite Release Notes
 
+## v0.5.1
+
+System.Data.SQLite 1.0.119
+
 ## v0.5.0
 
 `DB` methods `ExecuteScalar`, `ExecuteColumn`, `ExecuteLookup` and `Get-SQLite -Scalar|Column|Lookup` convert `DBNull` values to nulls.

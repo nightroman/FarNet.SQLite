@@ -1,7 +1,11 @@
 ﻿# Generates test tasks for samples.
 
 Get-Item ../samples-PowerShell/*.ps1 | .{process{
-	Add-BuildTask -Name:$_.Name -Data:$_ -Jobs:{
+	if ($PSEdition -eq 'Desktop' -and $_.Name -in @('DataFrame.ps1')) {
+		return
+	}
+
+	Add-BuildTask $_.Name -Data $_ {
 		& $Task.Data
 	}
 }}
